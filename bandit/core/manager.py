@@ -106,6 +106,8 @@ class BanditManager():
         if scope:
             self.scope = scope
 
+            self.b_ts.run_plugins_setup()
+
             # display progress, if number of files warrants it
             if len(scope) > self.progress:
                 sys.stdout.write("%s [" % len(scope))
@@ -136,13 +138,17 @@ class BanditManager():
                 sys.stdout.write("]\n")
                 sys.stdout.flush()
 
+            self.b_ts.run_plugins_finish()
+
         else:
             self.logger.info("no filename/s provided, working from stdin")
             try:
+                self.b_ts.run_plugins_setup()
                 score = self._execute_ast_visitor(
                     'STDIN', sys.stdin, self.b_ma, self.b_rs
                 )
                 self.scores.append(score)
+                self.b_ts.run_plugins_setup()
             except KeyboardInterrupt:
                 self.logger.debug("exiting")
                 sys.exit(1)

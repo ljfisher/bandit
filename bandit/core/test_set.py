@@ -25,11 +25,27 @@ import os
 import sys
 
 
+def plugin_setup(func):
+    '''Decorator for plugin function to be run before all tests.'''
+    if not hasattr(sys.modules[func.__module__], "_setup_func"):
+        sys.modules[func.__module__]._setup_func = func
+    return func
+
+
+def plugin_finish(func):
+    '''Decorator for plugin function to be run after all tests.'''
+    if not hasattr(sys.modules[func.__module__], "_finish_func"):
+        sys.modules[func.__module__]._finish_func = func
+    return func
+
+
 class BanditTestSet():
 
     tests = OrderedDict()
 
     def __init__(self, logger, config, profile=None):
+        self._setup_funcs = []
+        self._finish_funcs = []
         self.logger = logger
         self.config = config
         filter_list = self._filter_list_from_config(profile=profile)
@@ -118,6 +134,16 @@ class BanditTestSet():
             return_list.append(d[0])
         return return_list
 
+    def run_plugins_setup(self):
+        '''Run plugins' setup functions.'''
+        for func in self._setup_funcs:
+            func()
+
+    def run_plugins_finish(self):
+        '''Run plugins' finish functions.'''
+        for func in self._finish_funcs:
+            func()
+
     def load_tests(self, filter=None):
         '''Loads all tests in the plugins directory into testsdictionary.'''
 
@@ -153,6 +179,13 @@ class BanditTestSet():
             # otherwise we want to obtain a list of all functions in the module
             # and add them to our dictionary of tests
             else:
+                # Register the setup and finsih functions for the plugin
+                if hasattr(module, "_setup_func"):
+                    self._setup_funcs.append(module._setup_func)
+                if hasattr(module, "_finish_func"):
+                    self._finish_funcs.append(module._finish_func)
+
+                # Gather test functions
                 functions_list = [
                     o for o in getmembers(module) if isfunction(o[1])
                 ]

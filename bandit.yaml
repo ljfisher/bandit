@@ -66,6 +66,12 @@ blacklist_functions:
         - httpsconnection:
             qualname: httplib.HTTPSConnection
             message: "Use of HTTPSConnection does not provide security, see https://wiki.openstack.org/wiki/OSSN/OSSN-0033"
+        - yamlloads:
+            qualname: yaml.load
+            message: "Use of unsafe yamls load. Allows instantiation of arbitrary objects."
+        - urllib_urlopen:
+            qualname: urllib.urlopen, urllib.urlretrieve, urllib2.urlopen, urllib2.Request
+            message: "Audit url open for permitted schemes. Allowing file scheme is often unexpected."
 
 blacklist_imports:
     bad_import_sets:

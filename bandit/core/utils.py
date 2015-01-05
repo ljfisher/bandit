@@ -18,7 +18,7 @@
 import _ast
 import ast
 import symtable
-
+import os.path
 
 """Various helper functions."""
 
@@ -102,3 +102,39 @@ def mid_range(mid, count):
         stop = stop + (start * -1) + 1
         start = 1
     return range(start, stop)
+
+
+class InvalidModulePath(Exception):
+    pass
+
+def get_module_qualname_from_path(path):
+    '''Get the module's qualified name by analysis of the path.
+
+    Resolve the absolute pathname and eliminate symlinks. This could result in
+    an incorrect name if symlinks are used to restructure the python lib
+    directory.
+
+    Starting from the right-most directory component look for __init__.py in the
+    directory component. If it exists then the directory name is part of the
+    module name. Move left to the subsequent directory components until a
+    directory is found without __init__.py.
+
+    :param: Path to module file. Relative paths will be resolved relative to
+            current working directory.
+    :return: fully qualified module name
+    '''
+
+    abspath = os.path.realpath(path)
+    (head, tail) = os.path.split(path)
+    if tail == None or head == None or tail == '':
+        raise InvalidModulePath("Invalid python file path: '{}' Missing path or file name".format(path))
+
+    qname = [ os.path.splitext(tail)[0] ]
+    while head != None:
+        if os.path.isfile(os.path.join(head, '__init__.py')):
+            qname.insert(0, os.path.split(head)[1])
+            (head, tail) = os.path.split(head)
+        else:
+            break
+
+    return '.'.join(qname)

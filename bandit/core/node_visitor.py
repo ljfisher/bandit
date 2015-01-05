@@ -16,6 +16,7 @@
 
 import ast
 import copy
+import os.path
 
 import tester as b_tester
 import utils as b_utils
@@ -57,11 +58,27 @@ class BanditNodeVisitor(ast.NodeVisitor):
             self.logger, self.config, self.results, self.testset, self.debug
         )
 
+        self.namespace = b_utils.get_module_qualname_from_path(fname)
+        self.logger.debug('Module qualified name: {}' % (self.namespace))
+
+    def visit_ClassDef(self, node):
+        '''Visitor for AST ClassDef node
+
+        Add class name to current namespace for all descendents.
+        :param node: Node being inspected
+        :return: -
+        '''
+
+        self.namespace += '.' + node.name
+        super(BanditNodeVisitor, self).generic_visit(node)
+        self.namespace = self.namespace.rsplit('.', 1)[0]
+
     def visit_FunctionDef(self, node):
         '''Visitor for AST FunctionDef nodes
 
-        add relevant information about the node to
+        Add relevant information about the node to
         the context for use in tests which inspect function definitions.
+        Add the function name to the current namespace for all descendents.
         :param node: The node that is being inspected
         :return: -
         '''
@@ -71,14 +88,20 @@ class BanditNodeVisitor(ast.NodeVisitor):
 
         self.logger.debug("visit_FunctionDef called (%s)" % ast.dump(node))
 
-        qualname = b_utils.get_func_name(node)
+        qualname = self.namespace + '.' + b_utils.get_func_name(node)
         name = qualname.split('.')[-1]
 
         self.context['qualname'] = qualname
         self.context['name'] = name
 
+        # update namespace with function name for all descentents
+        self.namespace += '.' + name
+
         self.score += self.tester.run_tests(self.context, 'functions')
         super(BanditNodeVisitor, self).generic_visit(node)
+
+        # remove function name from current namespace
+        self.namespace = self.namespace.rsplit('.', 1)[0]
 
     def visit_Call(self, node):
         '''Visitor for AST Call nodes
@@ -143,6 +166,10 @@ class BanditNodeVisitor(ast.NodeVisitor):
                 self.context['import_aliases'][nodename.asname] = (
                     module + "." + nodename.name
                 )
+            # Even if import is not aliased we need entry that maps
+            # name to module.name.  For example, with 'from a import b' b should
+            # be aliased to the qualified name a.b
+            self.context['import_aliases'][nodename.name] = module + '.' + nodename.name
             self.context['imports'].add(module + "." + nodename.name)
             self.context['module'] = module
             self.context['name'] = nodename.name

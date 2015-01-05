@@ -30,6 +30,8 @@ class BanditTestSet():
     tests = OrderedDict()
 
     def __init__(self, logger, config, profile=None):
+        self.setup_funcs = []
+        self.finish_funcs = []
         self.logger = logger
         self.config = config
         filter_list = self._filter_list_from_config(profile=profile)
@@ -172,7 +174,11 @@ class BanditTestSet():
                             )
                             sys.exit(2)
                         else:
-                            if hasattr(function, '_checks'):
+                            if fn_name == 'setup':
+                                self.setup_funcs.append(function)
+                            elif fn_name == 'finish':
+                                self.finish_funcs.append(function)
+                            elif hasattr(function, '_checks'):
                                 for check in function._checks:
                                     # if check type hasn't been encountered
                                     # yet, initialize to empty dictionary

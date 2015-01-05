@@ -70,7 +70,9 @@ def main():
 
     b_mgr = b_manager.BanditManager(args.config_file, args.agg_type,
                                     args.debug, profile_name=args.profile)
+    b_mgr.run_plugins_setup()
     b_mgr.run_scope(args.files)
+    b_mgr.run_plugins_finish()
     if args.debug:
         b_mgr.output_metaast()
     b_mgr.output_results(args.context_lines, args.level - 1, args.output_file)

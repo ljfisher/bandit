@@ -97,6 +97,14 @@ class BanditManager():
         '''Outputs all the nodes from the Meta AST.'''
         self.b_ma.report()
 
+    def run_plugins_setup(self):
+        for func in self.b_ts.setup_funcs:
+            func()
+
+    def run_plugins_finish(self):
+        for func in self.b_ts.finish_funcs:
+            func()
+
     def run_scope(self, scope):
         '''Runs through all files in the scope
 
